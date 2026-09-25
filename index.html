@@ -53,6 +53,31 @@ main{min-height:calc(100vh - 78px)}
 .page{display:none}
 .page.active{display:block}
 
+
+/* DIAMOND LIST — Design 4 inspired: premium black + gold cards */
+.diamond-page{max-width:1050px;margin:0 auto;padding:34px 20px 60px}
+.diamond-head{text-align:center;margin-bottom:24px}
+.diamond-head .diamond-icon{font-size:42px;display:block;filter:drop-shadow(0 0 10px rgba(59,174,255,.45));margin-bottom:4px}
+.diamond-head h2{margin:0;color:var(--gold);font-size:32px;letter-spacing:.3px}
+.diamond-head p{margin:7px 0 0;color:var(--muted);font-size:14px}
+.diamond-list{display:grid;gap:10px}
+.diamond-item{display:grid;grid-template-columns:minmax(180px,1fr) auto auto;align-items:center;gap:18px;padding:13px 15px;border:1px solid #9a7419;border-radius:13px;background:linear-gradient(105deg,#0a0e16,#111722 58%,#0a0e15);box-shadow:inset 0 0 0 1px rgba(255,194,26,.05),0 5px 16px rgba(0,0,0,.22)}
+.diamond-info{display:flex;align-items:center;gap:13px;min-width:0}
+.diamond-gem{width:48px;height:48px;display:grid;place-items:center;flex:0 0 48px;border-radius:50%;background:#071b30;border:1px solid #1d77ae;box-shadow:0 0 15px rgba(38,164,255,.22);font-size:27px}
+.diamond-name{font-weight:900;font-size:17px;color:#fff;white-space:nowrap}
+.diamond-label{font-size:12px;color:#9eabbf;margin-top:3px}
+.diamond-price{font-weight:900;color:var(--gold);font-size:18px;white-space:nowrap;min-width:100px;text-align:right}
+.diamond-order{border:1px solid var(--gold);background:var(--gold);color:#10131a;border-radius:9px;padding:10px 17px;font-weight:900;white-space:nowrap;min-width:105px}
+.diamond-order:hover{background:var(--gold2);transform:translateY(-1px)}
+.required-deposit{margin-top:12px;padding:13px 14px;border:1px solid #8e6a18;border-radius:10px;background:#17140a;color:#ffe38b;font-weight:800}
+@media(max-width:700px){
+  .diamond-page{padding:24px 12px 45px}
+  .diamond-head h2{font-size:27px}
+  .diamond-item{grid-template-columns:1fr auto;gap:10px;padding:12px}
+  .diamond-price{grid-column:1;grid-row:2;text-align:left;padding-left:61px;min-width:0;font-size:16px}
+  .diamond-order{grid-column:2;grid-row:2;align-self:center}
+}
+
 /* HOME */
 .hero{
   min-height:calc(100vh - 78px);position:relative;overflow:hidden;
@@ -260,6 +285,17 @@ main{min-height:calc(100vh - 78px)}
     </div>
   </section>
 
+  <section id="diamonds" class="page">
+    <div class="diamond-page">
+      <div class="diamond-head">
+        <span class="diamond-icon">💎</span>
+        <h2>Diamond List</h2>
+        <p>More Diamonds, More Fun!</p>
+      </div>
+      <div class="diamond-list" id="diamondList"></div>
+    </div>
+  </section>
+
   <section id="packages" class="page">
     <div class="container">
       <h2 class="page-title">Packages List</h2>
@@ -270,7 +306,7 @@ main{min-height:calc(100vh - 78px)}
   <section id="order" class="page">
     <div class="container">
       <div class="order-box">
-        <button class="back" onclick="showPage('packages')">← Back to Packages</button>
+        <button class="back" onclick="showPage(selectedOrderType==='diamond'?'diamonds':'packages')">← Back</button>
         <div class="card">
           <h2 id="orderTitle"></h2>
           <div class="price" id="orderPrice"></div>
@@ -351,16 +387,26 @@ main{min-height:calc(100vh - 78px)}
 
 <script>
 const packages = [
-  {name:"Diamond List",comingSoon:"Diamond List Coming Soon"},
+  {name:"Diamond List",diamondList:true},
   {name:"Weekly Lite Membership",price:45},
   {name:"Weekly Membership",price:158},
   {name:"Monthly Membership",price:790},
   {name:"Level UP Pass",comingSoon:"Level UP Pass Coming Soon"},
   {name:"Spacial Event",comingSoon:"Spacial Event Coming Soon"},
   {name:"Airdrop",comingSoon:"Airdrop Coming Soon"}
-];
+ ];
 
-let selectedPackage=null, qty=1, authMode="signin";
+const diamondPackages = [
+  {diamonds:25,price:25},{diamonds:50,price:45},{diamonds:115,price:80},{diamonds:240,price:160},
+  {diamonds:355,price:240},{diamonds:480,price:320},{diamonds:610,price:400},{diamonds:725,price:480},
+  {diamonds:850,price:560},{diamonds:965,price:640},{diamonds:1090,price:720},{diamonds:1240,price:800},
+  {diamonds:1355,price:880},{diamonds:1480,price:960},{diamonds:1595,price:1040},{diamonds:1720,price:1120},
+  {diamonds:1850,price:1200},{diamonds:1965,price:1280},{diamonds:2090,price:1360},{diamonds:2205,price:1440},
+  {diamonds:2330,price:1520},{diamonds:2530,price:1600},{diamonds:3010,price:1920},{diamonds:4010,price:2560},
+  {diamonds:5060,price:3200},{diamonds:6025,price:3840}
+].sort((a,b)=>a.diamonds-b.diamonds);
+
+let selectedPackage=null, selectedDiamond=null, selectedOrderType=null, qty=1, authMode="signin";
 
 const getUser=()=>JSON.parse(localStorage.getItem("mgsUser")||"null");
 const isSignedIn=()=>localStorage.getItem("mgsSignedIn")==="true";
@@ -381,13 +427,44 @@ function showPage(page){
   window.scrollTo({top:0,behavior:"smooth"});
 }
 
+function renderDiamondList(){
+  const el=document.getElementById("diamondList");
+  if(!el)return;
+  el.innerHTML=diamondPackages.map((d,i)=>`
+    <div class="diamond-item">
+      <div class="diamond-info">
+        <div class="diamond-gem">💎</div>
+        <div><div class="diamond-name">${d.diamonds.toLocaleString()} Diamonds</div><div class="diamond-label">Free Fire Diamonds</div></div>
+      </div>
+      <div class="diamond-price">৳${d.price.toLocaleString()}</div>
+      <button class="diamond-order" onclick="openDiamondOrder(${i})">Order Now</button>
+    </div>`).join("");
+}
+
+function openDiamondOrder(i){
+  if(!requireAuth("order"))return;
+  selectedDiamond=diamondPackages[i];
+  selectedPackage=null;
+  selectedOrderType="diamond";
+  qty=1;
+  document.getElementById("orderTitle").textContent=selectedDiamond.diamonds.toLocaleString()+" Diamonds";
+  document.getElementById("orderPrice").textContent="৳"+selectedDiamond.price.toLocaleString()+" per 1";
+  document.getElementById("uidInput").value="";
+  document.getElementById("orderNotice").innerHTML="";
+  document.querySelector("#order .qty").style.display="flex";
+  document.getElementById("uidInput").closest(".field").style.display="block";
+  document.querySelector("#order .primary-action").style.display="";
+  updateOrderTotal();
+  showPage("order");
+}
+
 function renderPackages(){
   document.getElementById("packageGrid").innerHTML=packages.map((p,i)=>`
     <div class="card">
       <h3>${escapeHtml(p.name)}</h3>
       ${p.price!==undefined?`<div class="price">৳${p.price}</div>`:''}
       <div class="small">Free Fire game package — fast and easy purchase.</div>
-      <button onclick="openOrder(${i})">Order Now →</button>
+      <button onclick="${p.diamondList?`showPage('diamonds')`:`openOrder(${i})`}">Order Now →</button>
     </div>`).join("");
 }
 
@@ -405,7 +482,7 @@ function openOrder(i){
     return;
   }
   if(!requireAuth("order"))return;
-  selectedPackage=p; qty=1;
+  selectedPackage=p; selectedDiamond=null; selectedOrderType="package"; qty=1;
   document.getElementById("orderTitle").textContent=selectedPackage.name;
   document.getElementById("orderPrice").textContent="৳"+selectedPackage.price;
   document.getElementById("uidInput").value="";
@@ -423,7 +500,8 @@ function changeQty(n){
 }
 function updateOrderTotal(){
   document.getElementById("qtyValue").textContent=qty;
-  if(selectedPackage)document.getElementById("orderTotal").textContent="Total: ৳"+(selectedPackage.price*qty);
+  const unit=selectedDiamond?selectedDiamond.price:(selectedPackage?selectedPackage.price:null);
+  if(unit!==null)document.getElementById("orderTotal").textContent="Total: ৳"+(unit*qty).toLocaleString();
 }
 
 function submitOrder(){
@@ -433,24 +511,38 @@ function submitOrder(){
   if(!/^\d{1,20}$/.test(uid)){
     notice.innerHTML='<div class="error">Please enter a valid numeric Free Fire UID.</div>';return;
   }
-  const total=selectedPackage.price*qty;
+  const unit=selectedDiamond?selectedDiamond.price:(selectedPackage?selectedPackage.price:0);
+  const total=unit*qty;
   const wallet=getWallet();
   if(wallet<total){
-    notice.innerHTML='<div class="error">Insufficient wallet balance. Please add money first.</div>';return;
+    const needed=total-wallet;
+    localStorage.setItem("mgsRequiredDeposit",String(needed));
+    showPage("wallet");
+    renderWallet();
+    return;
   }
   const orders=getOrders();
+  const itemName=selectedDiamond?selectedDiamond.diamonds.toLocaleString()+" Diamonds":selectedPackage.name;
   orders.unshift({
-    id:"MGS-"+Date.now(),package:selectedPackage.name,price:selectedPackage.price,
-    quantity:qty,total,uid,date:new Date().toLocaleString()
+    id:"MGS-"+Date.now(),package:itemName,price:unit,quantity:qty,total,uid,date:new Date().toLocaleString(),type:selectedDiamond?"diamond":"package"
   });
   localStorage.setItem("mgsOrders",JSON.stringify(orders));
   localStorage.setItem("mgsWallet",String(wallet-total));
+  localStorage.removeItem("mgsRequiredDeposit");
   notice.innerHTML='<div class="success">Order submitted successfully.</div>';
   setTimeout(()=>{showPage("orders")},700);
 }
 
 function renderWallet(){
-  document.getElementById("walletBalance").textContent="৳"+getWallet();
+  const balance=getWallet();
+  document.getElementById("walletBalance").textContent="৳"+balance.toLocaleString();
+  const required=Number(localStorage.getItem("mgsRequiredDeposit")||0);
+  const card=document.querySelector("#wallet .card");
+  let el=document.getElementById("requiredDepositNotice");
+  if(required>0){
+    if(!el){el=document.createElement("div");el.id="requiredDepositNotice";el.className="required-deposit";card.appendChild(el)}
+    el.textContent="এই Order করতে আপনাকে আরও ৳"+required.toLocaleString()+" Deposit করতে হবে।";
+  }else if(el){el.remove()}
 }
 function renderOrders(){
   const el=document.getElementById("ordersList"), orders=getOrders();
@@ -626,7 +718,7 @@ function escapeHtml(s){
 }
 
 document.addEventListener("DOMContentLoaded",()=>{
-  renderPackages();updateAuthArea();renderWallet();renderOrders();renderProfile();
+  renderPackages();renderDiamondList();updateAuthArea();renderWallet();renderOrders();renderProfile();
 });
 </script>
 </body>
