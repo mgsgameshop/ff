@@ -69,6 +69,7 @@ main{min-height:calc(100vh - 78px)}
 .diamond-price{font-weight:900;color:var(--gold);font-size:18px;white-space:nowrap;min-width:100px;text-align:right}
 .diamond-order{border:1px solid var(--gold);background:var(--gold);color:#10131a;border-radius:9px;padding:10px 17px;font-weight:900;white-space:nowrap;min-width:105px}
 .diamond-order:hover{background:var(--gold2);transform:translateY(-1px)}
+.diamond-item{cursor:pointer;transition:transform .15s ease,border-color .15s ease,box-shadow .15s ease}.diamond-item:hover{transform:translateY(-1px);border-color:var(--gold2);box-shadow:inset 0 0 0 1px rgba(255,194,26,.09),0 8px 22px rgba(0,0,0,.28)}.diamond-total{margin:10px 0 14px;padding:12px 14px;border:1px solid #2c5d7e;border-radius:10px;background:#071726;color:#9fdbff;font-weight:900;text-align:center}.diamond-total:empty{display:none}
 .required-deposit{margin-top:12px;padding:13px 14px;border:1px solid #8e6a18;border-radius:10px;background:#17140a;color:#ffe38b;font-weight:800}
 @media(max-width:700px){
   .diamond-page{padding:24px 12px 45px}
@@ -313,7 +314,7 @@ main{min-height:calc(100vh - 78px)}
           <div class="qty">
             <button onclick="changeQty(-1)">−</button><strong id="qtyValue">1</strong><button onclick="changeQty(1)">+</button>
           </div>
-          <div class="total" id="orderTotal"></div>
+          <div class="total" id="orderTotal"></div><div class="diamond-total" id="diamondTotal"></div>
           <div class="field">
             <label>Free Fire UID</label>
             <input id="uidInput" inputmode="numeric" maxlength="20" placeholder="Enter your Free Fire UID">
@@ -417,6 +418,7 @@ function showPage(page){
   document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
   const target=document.getElementById(page); if(!target)return;
   target.classList.add("active");
+  history.replaceState(null,"",location.pathname+location.search+"#"+page);
   document.querySelectorAll(".navbtn").forEach(b=>b.classList.toggle("active",b.dataset.page===page));
   const mh=document.getElementById("mobileHomeBtn");
   if(mh)mh.classList.toggle("active",page==="home");
@@ -427,26 +429,67 @@ function showPage(page){
   window.scrollTo({top:0,behavior:"smooth"});
 }
 
+function saveOrderState(){
+  if(selectedOrderType){
+    sessionStorage.setItem("mgsCurrentOrder",JSON.stringify({
+      type:selectedOrderType,
+      diamond:selectedDiamond,
+      package:selectedPackage,
+      qty
+    }));
+  }
+}
+function clearOrderState(){sessionStorage.removeItem("mgsCurrentOrder");}
+function restoreOrderState(){
+  try{
+    const raw=sessionStorage.getItem("mgsCurrentOrder");
+    if(!raw)return false;
+    const st=JSON.parse(raw);
+    selectedOrderType=st.type||null; qty=Math.max(1,Math.min(99,Number(st.qty)||1));
+    selectedDiamond=st.diamond||null; selectedPackage=st.package||null;
+    if(selectedOrderType==="diamond"&&selectedDiamond){
+      document.getElementById("orderTitle").textContent=Number(selectedDiamond.diamonds).toLocaleString()+" Diamonds";
+      document.getElementById("orderPrice").textContent="৳"+Number(selectedDiamond.price).toLocaleString()+" per 1";
+      document.querySelector("#order .qty").style.display="flex";
+      document.getElementById("uidInput").closest(".field").style.display="block";
+      document.querySelector("#order .primary-action").style.display="";
+      updateOrderTotal();
+      return true;
+    }
+    if(selectedOrderType==="package"&&selectedPackage){
+      document.getElementById("orderTitle").textContent=selectedPackage.name;
+      document.getElementById("orderPrice").textContent="৳"+selectedPackage.price;
+      document.querySelector("#order .qty").style.display="flex";
+      document.getElementById("uidInput").closest(".field").style.display="block";
+      document.querySelector("#order .primary-action").style.display="";
+      updateOrderTotal();
+      return true;
+    }
+  }catch(e){}
+  return false;
+}
+
 function renderDiamondList(){
   const el=document.getElementById("diamondList");
   if(!el)return;
   el.innerHTML=diamondPackages.map((d,i)=>`
-    <div class="diamond-item">
+    <div class="diamond-item" role="button" tabindex="0" onclick="openDiamondOrder(${i})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openDiamondOrder(${i})}">
       <div class="diamond-info">
         <div class="diamond-gem">💎</div>
         <div><div class="diamond-name">${d.diamonds.toLocaleString()} Diamonds</div><div class="diamond-label">Free Fire Diamonds</div></div>
       </div>
       <div class="diamond-price">৳${d.price.toLocaleString()}</div>
-      <button class="diamond-order" onclick="openDiamondOrder(${i})">Order Now</button>
+      <button class="diamond-order" type="button" onclick="event.stopPropagation();openDiamondOrder(${i})">Order Now</button>
     </div>`).join("");
 }
 
 function openDiamondOrder(i){
-  if(!requireAuth("order"))return;
   selectedDiamond=diamondPackages[i];
   selectedPackage=null;
   selectedOrderType="diamond";
   qty=1;
+  saveOrderState();
+  if(!requireAuth("order"))return;
   document.getElementById("orderTitle").textContent=selectedDiamond.diamonds.toLocaleString()+" Diamonds";
   document.getElementById("orderPrice").textContent="৳"+selectedDiamond.price.toLocaleString()+" per 1";
   document.getElementById("uidInput").value="";
@@ -482,7 +525,7 @@ function openOrder(i){
     return;
   }
   if(!requireAuth("order"))return;
-  selectedPackage=p; selectedDiamond=null; selectedOrderType="package"; qty=1;
+  selectedPackage=p; selectedDiamond=null; selectedOrderType="package"; qty=1; saveOrderState();
   document.getElementById("orderTitle").textContent=selectedPackage.name;
   document.getElementById("orderPrice").textContent="৳"+selectedPackage.price;
   document.getElementById("uidInput").value="";
@@ -496,12 +539,17 @@ function openOrder(i){
 
 function changeQty(n){
   qty=Math.max(1,Math.min(99,qty+n));
+  saveOrderState();
   updateOrderTotal();
 }
 function updateOrderTotal(){
   document.getElementById("qtyValue").textContent=qty;
   const unit=selectedDiamond?selectedDiamond.price:(selectedPackage?selectedPackage.price:null);
   if(unit!==null)document.getElementById("orderTotal").textContent="Total: ৳"+(unit*qty).toLocaleString();
+  const dt=document.getElementById("diamondTotal");
+  if(dt){
+    dt.textContent=selectedDiamond?"💎 আপনার ID-তে যাবে: "+(Number(selectedDiamond.diamonds)*qty).toLocaleString()+" Diamonds":"";
+  }
 }
 
 function submitOrder(){
@@ -529,6 +577,7 @@ function submitOrder(){
   localStorage.setItem("mgsOrders",JSON.stringify(orders));
   localStorage.setItem("mgsWallet",String(wallet-total));
   localStorage.removeItem("mgsRequiredDeposit");
+  clearOrderState();
   notice.innerHTML='<div class="success">Order submitted successfully.</div>';
   setTimeout(()=>{showPage("orders")},700);
 }
@@ -653,6 +702,7 @@ function signIn(){
    msg.innerHTML='<div class="error">Invalid email or password.</div>';return
  }
  localStorage.setItem("mgsSignedIn","true");closeAuth();updateAuthArea();renderProfile();
+  if(sessionStorage.getItem("mgsCurrentOrder")){ showPage("order"); restoreOrderState(); }
 }
 function signUp(){
  const name=document.getElementById("authName").value.trim();
@@ -665,7 +715,8 @@ function signUp(){
  localStorage.setItem("mgsSignedIn","true");
  if(!localStorage.getItem("mgsWallet"))localStorage.setItem("mgsWallet","0");
  if(!localStorage.getItem("mgsOrders"))localStorage.setItem("mgsOrders","[]");
- closeAuth();updateAuthArea();showPage("profile");
+ closeAuth();updateAuthArea();
+ if(sessionStorage.getItem("mgsCurrentOrder")){ showPage("order"); restoreOrderState(); } else { showPage("profile"); }
 }
 function forgotPassword(){
  const email=prompt("Enter your account email:");
@@ -719,6 +770,11 @@ function escapeHtml(s){
 
 document.addEventListener("DOMContentLoaded",()=>{
   renderPackages();renderDiamondList();updateAuthArea();renderWallet();renderOrders();renderProfile();
+  const wanted=location.hash.replace(/^#/,"");
+  if(wanted&&document.getElementById(wanted)){
+    if(wanted==="order" && restoreOrderState()) showPage("order");
+    else showPage(wanted);
+  }
 });
 </script>
 </body>
