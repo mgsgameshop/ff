@@ -189,6 +189,29 @@ main{min-height:calc(100vh - 78px)}
   .mobile-menu .menu-auth .primary{background:var(--gold);color:#10131a;border-color:var(--gold)}
   .mobile-menu .menu-name{color:var(--gold);font-weight:900}
 }
+
+/* UNIVERSAL NAVIGATION: same three-line menu on every device */
+.navlinks,.auth-area{display:none!important}
+.menu-toggle{display:flex;flex:0 0 42px;width:42px;height:42px;align-items:center;justify-content:center;border:1px solid #2b354c;border-radius:10px;background:#0c1323;color:#fff;font-size:25px;line-height:1;padding:0;margin-left:auto}
+.menu-toggle.open{color:var(--gold);border-color:var(--gold)}
+.mobile-home{display:none}
+.mobile-identity{display:none}
+.mobile-menu{display:none;position:absolute;top:100%;right:20px;width:min(360px,calc(100vw - 40px));z-index:80;background:rgba(7,11,22,.98);border:1px solid #28334a;border-radius:0 0 14px 14px;box-shadow:0 16px 35px rgba(0,0,0,.45);padding:8px}
+.mobile-menu.open{display:block}
+.mobile-menu button{width:100%;display:flex;align-items:center;gap:12px;border:0;border-bottom:1px solid #202a40;background:transparent;color:#fff;text-align:left;padding:14px 13px;font-weight:800;font-size:15px}
+.mobile-menu button:hover,.mobile-menu button.active{color:var(--gold);background:#10182a;border-radius:8px}
+.mobile-menu .menu-account{margin-top:4px;padding-top:12px;border-top:1px solid #2a344a}
+.mobile-menu .menu-auth{display:flex;gap:8px;padding:10px 6px 4px}
+.mobile-menu .menu-auth button{justify-content:center;border:1px solid #3a455d;border-radius:8px;padding:11px 8px;background:#0e1627}
+.mobile-menu .menu-auth .primary{background:var(--gold);color:#10131a;border-color:var(--gold)}
+.mobile-menu .menu-name{color:var(--gold);font-weight:900}
+@media(max-width:600px){
+  .nav{padding:0 12px;gap:10px}
+  .brand{min-width:0;font-size:18px}
+  .brand-mark{font-size:27px}
+  .brand span:last-child{font-size:17px}
+  .mobile-menu{left:10px;right:10px;width:auto}
+}
 </style>
 </head>
 <body>
@@ -328,12 +351,13 @@ main{min-height:calc(100vh - 78px)}
 
 <script>
 const packages = [
+  {name:"Diamond List",comingSoon:"Diamond List Coming Soon"},
   {name:"Weekly Lite Membership",price:45},
-  {name:"Weekly Membership",price:190},
-  {name:"Monthly Membership",price:750},
-  {name:"Level Up Pass",price:170},
-  {name:"Special Event",price:99},
-  {name:"Airdrop",price:60}
+  {name:"Weekly Membership",price:158},
+  {name:"Monthly Membership",price:790},
+  {name:"Level UP Pass",comingSoon:"Level UP Pass Coming Soon"},
+  {name:"Spacial Event",comingSoon:"Spacial Event Coming Soon"},
+  {name:"Airdrop",comingSoon:"Airdrop Coming Soon"}
 ];
 
 let selectedPackage=null, qty=1, authMode="signin";
@@ -360,19 +384,35 @@ function showPage(page){
 function renderPackages(){
   document.getElementById("packageGrid").innerHTML=packages.map((p,i)=>`
     <div class="card">
-      <h3>${p.name}</h3>
-      <div class="price">৳${p.price}</div>
+      <h3>${escapeHtml(p.name)}</h3>
+      ${p.price!==undefined?`<div class="price">৳${p.price}</div>`:''}
       <div class="small">Free Fire game package — fast and easy purchase.</div>
       <button onclick="openOrder(${i})">Order Now →</button>
     </div>`).join("");
 }
 
 function openOrder(i){
+  const p=packages[i];
+  if(p.comingSoon){
+    document.getElementById("orderTitle").textContent=p.name;
+    document.getElementById("orderPrice").textContent="";
+    document.getElementById("orderNotice").innerHTML=`<div class="notice" style="margin-top:0">${escapeHtml(p.comingSoon)}</div>`;
+    document.querySelector("#order .qty").style.display="none";
+    document.getElementById("orderTotal").textContent="";
+    document.getElementById("uidInput").closest(".field").style.display="none";
+    document.querySelector("#order .primary-action").style.display="none";
+    showPage("order");
+    return;
+  }
   if(!requireAuth("order"))return;
-  selectedPackage=packages[i]; qty=1;
+  selectedPackage=p; qty=1;
   document.getElementById("orderTitle").textContent=selectedPackage.name;
   document.getElementById("orderPrice").textContent="৳"+selectedPackage.price;
   document.getElementById("uidInput").value="";
+  document.getElementById("orderNotice").innerHTML="";
+  document.querySelector("#order .qty").style.display="flex";
+  document.getElementById("uidInput").closest(".field").style.display="block";
+  document.querySelector("#order .primary-action").style.display="";
   updateOrderTotal();
   showPage("order");
 }
