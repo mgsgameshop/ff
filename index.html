@@ -163,6 +163,32 @@ main{min-height:calc(100vh - 78px)}
   .shop-btn{padding:14px 29px;font-size:16px}
   .grid{grid-template-columns:1fr}.container{padding:22px 13px}
 }
+
+/* MOBILE HEADER LAYOUT — layout only; existing functionality preserved */
+.mobile-home,.mobile-identity,.menu-toggle,.mobile-menu{display:none}
+@media(max-width:700px){
+  header{height:auto}
+  .nav{min-height:68px;display:flex;flex-wrap:nowrap;gap:6px;padding:8px 10px;position:relative}
+  .brand{flex:0 0 auto;min-width:0;gap:7px}
+  .brand-mark{font-size:27px}
+  .brand span:last-child{display:inline;font-size:16px;line-height:1.05}
+  .mobile-home{display:flex;align-items:center;justify-content:center;flex:0 0 auto;border:0;background:transparent;color:#fff;padding:10px 6px;font-weight:800;font-size:14px}
+  .mobile-home.active{color:var(--gold)}
+  .mobile-identity{display:block;flex:1;min-width:0;text-align:center;color:#fff;font-weight:900;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 3px}
+  .navlinks,.auth-area{display:none!important}
+  .menu-toggle{display:flex;flex:0 0 42px;width:42px;height:42px;align-items:center;justify-content:center;border:1px solid #2b354c;border-radius:10px;background:#0c1323;color:#fff;font-size:25px;line-height:1;padding:0}
+  .menu-toggle.open{color:var(--gold);border-color:var(--gold)}
+  .mobile-menu{position:absolute;top:100%;right:10px;left:10px;z-index:80;background:rgba(7,11,22,.98);border:1px solid #28334a;border-radius:0 0 14px 14px;box-shadow:0 16px 35px rgba(0,0,0,.45);padding:8px}
+  .mobile-menu.open{display:block}
+  .mobile-menu button{width:100%;display:flex;align-items:center;gap:12px;border:0;border-bottom:1px solid #202a40;background:transparent;color:#fff;text-align:left;padding:14px 13px;font-weight:800;font-size:15px}
+  .mobile-menu button:last-child{border-bottom:0}
+  .mobile-menu button:hover,.mobile-menu button.active{color:var(--gold);background:#10182a;border-radius:8px}
+  .mobile-menu .menu-account{margin-top:4px;padding-top:12px;border-top:1px solid #2a344a}
+  .mobile-menu .menu-auth{display:flex;gap:8px;padding:10px 6px 4px}
+  .mobile-menu .menu-auth button{justify-content:center;border:1px solid #3a455d;border-radius:8px;padding:11px 8px;background:#0e1627}
+  .mobile-menu .menu-auth .primary{background:var(--gold);color:#10131a;border-color:var(--gold)}
+  .mobile-menu .menu-name{color:var(--gold);font-weight:900}
+}
 </style>
 </head>
 <body>
@@ -173,6 +199,10 @@ main{min-height:calc(100vh - 78px)}
       <span class="brand-mark">MGS</span><span>Game Shop</span>
     </a>
 
+    <button class="mobile-home active" id="mobileHomeBtn" onclick="showPage('home');closeMobileMenu()">⌂ <span>Home</span></button>
+    <div class="mobile-identity" id="mobileIdentity">MGS Game Shop</div>
+    <button class="menu-toggle" id="menuToggle" aria-label="Open menu" aria-expanded="false" onclick="toggleMobileMenu()">☰</button>
+
     <div class="navlinks">
       <button class="navbtn active" data-page="home" onclick="showPage('home')">⌂ <span>Home</span></button>
       <button class="navbtn" data-page="packages" onclick="showPage('packages')">◇ <span>Packages</span></button>
@@ -182,6 +212,15 @@ main{min-height:calc(100vh - 78px)}
     </div>
 
     <div class="auth-area" id="authArea"></div>
+
+    <div class="mobile-menu" id="mobileMenu">
+      <button data-page="home" onclick="showPage('home');closeMobileMenu()">⌂ <span>Home</span></button>
+      <button data-page="profile" onclick="showPage('profile');closeMobileMenu()">♙ <span>Profile</span></button>
+      <button data-page="packages" onclick="showPage('packages');closeMobileMenu()">◇ <span>Packages</span></button>
+      <button data-page="wallet" onclick="showPage('wallet');closeMobileMenu()">▣ <span>Wallet</span></button>
+      <button data-page="orders" onclick="showPage('orders');closeMobileMenu()">▤ <span>Orders</span></button>
+      <div class="menu-account" id="mobileAccount"></div>
+    </div>
   </nav>
 </header>
 
@@ -309,6 +348,9 @@ function showPage(page){
   const target=document.getElementById(page); if(!target)return;
   target.classList.add("active");
   document.querySelectorAll(".navbtn").forEach(b=>b.classList.toggle("active",b.dataset.page===page));
+  const mh=document.getElementById("mobileHomeBtn");
+  if(mh)mh.classList.toggle("active",page==="home");
+  document.querySelectorAll("#mobileMenu [data-page]").forEach(b=>b.classList.toggle("active",b.dataset.page===page));
   if(page==="wallet")renderWallet();
   if(page==="orders")renderOrders();
   if(page==="profile")renderProfile();
@@ -408,13 +450,34 @@ function renderProfile(){
 
 function updateAuthArea(){
   const el=document.getElementById("authArea");
+  const mobile=document.getElementById("mobileAccount");
+  const identity=document.getElementById("mobileIdentity");
   const u=getUser();
   if(isSignedIn()&&u){
     el.innerHTML=`<button class="user-btn" onclick="showPage('profile')">${escapeHtml(u.name)}</button>`;
+    if(identity)identity.textContent=u.name;
+    if(mobile)mobile.innerHTML=`<button class="menu-name" data-page="profile" onclick="showPage('profile');closeMobileMenu()">👤 <span>${escapeHtml(u.name)}</span></button>`;
   }else{
     el.innerHTML=`<button class="auth-btn" onclick="openAuth('signin')">Login</button>
                   <button class="auth-btn primary" onclick="openAuth('signup')">Sign Up</button>`;
+    if(identity)identity.textContent="MGS Game Shop";
+    if(mobile)mobile.innerHTML=`<div class="menu-auth"><button onclick="openAuth('signin');closeMobileMenu()">Login</button><button class="primary" onclick="openAuth('signup');closeMobileMenu()">Sign Up</button></div>`;
   }
+}
+
+function toggleMobileMenu(){
+  const menu=document.getElementById("mobileMenu");
+  const toggle=document.getElementById("menuToggle");
+  if(!menu||!toggle)return;
+  const open=menu.classList.toggle("open");
+  toggle.classList.toggle("open",open);
+  toggle.setAttribute("aria-expanded",open?"true":"false");
+}
+function closeMobileMenu(){
+  const menu=document.getElementById("mobileMenu");
+  const toggle=document.getElementById("menuToggle");
+  if(menu)menu.classList.remove("open");
+  if(toggle){toggle.classList.remove("open");toggle.setAttribute("aria-expanded","false")}
 }
 
 function requireAuth(){
